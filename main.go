@@ -2,11 +2,20 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
+	"math/rand"
 	"os"
+	"path/filepath"
+	"slices"
+	"strings"
 )
 
 func main() {
 	fmt.Println("RandomSlide starting...")
+
+	fileExt := []string{".jpg", ".jpeg", ".png", ".webp", ".mp4", ".webm", ".mkv", ".mov", ".gif"}
+	mediaFiles := []string{}
+
 	if len(os.Args) != 2 {
 		fmt.Println("Usage: randomslide <directory>")
 		os.Exit(1)
@@ -28,4 +37,31 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("Media directory:", pathFromUser)
+
+	walkErr := filepath.WalkDir(pathFromUser, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			currentExt := strings.ToLower(filepath.Ext(path))
+			if slices.Contains(fileExt, currentExt) {
+				mediaFiles = append(mediaFiles, path)
+			}
+		}
+		return nil
+	},
+	)
+
+	if walkErr != nil {
+		fmt.Println("Error while walking directory:", walkErr)
+		os.Exit(1)
+	}
+
+	fmt.Println("Found", len(mediaFiles), "media files")
+
+	if len(mediaFiles) == 0 {
+		fmt.Println("No media files found")
+		os.Exit(1)
+	}
+	fmt.Println("Random media:", mediaFiles[rand.Intn(len(mediaFiles))])
 }
