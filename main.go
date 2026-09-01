@@ -13,9 +13,6 @@ import (
 func main() {
 	fmt.Println("RandomSlide starting...")
 
-	fileExt := []string{".jpg", ".jpeg", ".png", ".webp", ".mp4", ".webm", ".mkv", ".mov", ".gif"}
-	mediaFiles := []string{}
-
 	if len(os.Args) != 2 {
 		fmt.Println("Usage: randomslide <directory>")
 		os.Exit(1)
@@ -38,22 +35,10 @@ func main() {
 	}
 	fmt.Println("Media directory:", pathFromUser)
 
-	walkErr := filepath.WalkDir(pathFromUser, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() {
-			currentExt := strings.ToLower(filepath.Ext(path))
-			if slices.Contains(fileExt, currentExt) {
-				mediaFiles = append(mediaFiles, path)
-			}
-		}
-		return nil
-	},
-	)
+	mediaFiles, err := findMedia(pathFromUser)
 
-	if walkErr != nil {
-		fmt.Println("Error while walking directory:", walkErr)
+	if err != nil {
+		fmt.Println("Error while walking directory:", err)
 		os.Exit(1)
 	}
 
@@ -64,4 +49,30 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("Random media:", mediaFiles[rand.Intn(len(mediaFiles))])
+}
+
+func findMedia(rootPath string) ([]string, error) {
+
+	supportedExtensions := []string{".jpg", ".jpeg", ".png", ".webp", ".mp4", ".webm", ".mkv", ".mov", ".gif"}
+
+	mediaFiles := []string{}
+
+	walkErr := filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			currentExt := strings.ToLower(filepath.Ext(path))
+			if slices.Contains(supportedExtensions, currentExt) {
+				mediaFiles = append(mediaFiles, path)
+			}
+		}
+		return nil
+	},
+	)
+
+	if walkErr != nil {
+		return nil, walkErr
+	}
+	return mediaFiles, nil
 }
