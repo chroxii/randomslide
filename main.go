@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"math/rand"
@@ -9,6 +10,9 @@ import (
 	"slices"
 	"strings"
 )
+
+var errPathNotFound = errors.New("path does not exist")
+var errPathIsNotDir = errors.New("path is not a directory")
 
 func main() {
 	fmt.Println("RandomSlide starting...")
@@ -20,19 +24,21 @@ func main() {
 
 	pathFromUser := os.Args[1]
 
-	info, err := os.Stat(pathFromUser)
-	if err != nil {
-		if os.IsNotExist(err) {
-			fmt.Println("Error: path does not exist")
-		} else {
-			fmt.Println("An error occurred:", err)
-		}
+	err := validatePath(pathFromUser)
+
+	if errors.Is(err, errPathNotFound) {
+		fmt.Println("Error: path does not exist")
 		os.Exit(1)
 	}
-	if !info.IsDir() {
+	if errors.Is(err, errPathIsNotDir) {
 		fmt.Println("Error: path is not a directory")
 		os.Exit(1)
 	}
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+
 	fmt.Println("Media directory:", pathFromUser)
 
 	mediaFiles, err := findMedia(pathFromUser)
@@ -75,4 +81,19 @@ func findMedia(rootPath string) ([]string, error) {
 		return nil, walkErr
 	}
 	return mediaFiles, nil
+}
+
+func validatePath(path string) error {
+
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return errPathNotFound
+		}
+		return fmt.Errorf("an error occurred: %w", err)
+	}
+	if !info.IsDir() {
+		return errPathIsNotDir
+	}
+	return nil
 }
